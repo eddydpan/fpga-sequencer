@@ -1,5 +1,4 @@
 # FPGA Sequencer
-Arianne Fong, Amanda Chang, Laurel Cox, Eddy Pan
 3 December 2025
 
 ## Project Description
@@ -19,4 +18,107 @@ https://www.amazon.com/Tegg-Matrix-Button-Arduino-Raspberry/dp/B07QKCQGXS
 6 Rotary Encoders: https://a.co/d/9N2CXG3 
 Buzzer/Small speaker: https://a.co/d/gRcDAPn 
 iceBlinkPico FPGA
+
+## Qt Visual Interface & TDD
+
+This repo contains a **passive Qt GUI visualizer** for the FPGA sequencer. The GUI **does not implement any sequencer logic** - it only displays data received from the FPGA over UART.
+
+**What this codebase does:**
+- ✅ Parses UART messages (`BEAT <n>`, `TONE <beat> <tone>`) from FPGA
+- ✅ Visualizes 16 beats with color-coded tones (rainbow mapping)
+- ✅ Highlights current beat with yellow border
+- ✅ Provides mock UART tool for testing without hardware
+
+**What this codebase does NOT do:**
+- ❌ No internal sequencer logic, timing, or beat generation
+- ❌ No LED blinking or audio output
+- ❌ No onboard FPGA implementation (that lives in hardware)
+
+### Build Instructions
+
+```bash
+mkdir -p build && cd build
+cmake .. -DBUILD_TESTS=ON
+cmake --build . --parallel 4
+```
+
+### Run Tests
+
+```bash
+cd build
+ctest --output-on-failure
+```
+
+### Usage
+
+**Method 1: Mock UART Tool (Automated Demo)**
+
+Run the GUI and pipe mock UART data from the demo tool:
+
+```bash
+cd build
+./tools/mock_uart_sender --demo | ./src/fpga_sequencer_gui
+```
+
+This will:
+1. Set up a beat pattern with various tones
+2. Advance through beats every 500ms
+3. Display in the GUI with colors and highlighting
+
+**Method 2: Manual UART Injection**
+
+Inject individual commands via echo/pipe:
+
+```bash
+# Start GUI and pipe commands
+cd build
+(echo "TONE 0 5"; echo "TONE 3 7"; echo "BEAT 0"; sleep 1; echo "BEAT 3") | ./src/fpga_sequencer_gui
+```
+
+**Method 3: Interactive Mode**
+
+```bash
+cd build
+./tools/mock_uart_sender --interactive | ./src/fpga_sequencer_gui
+```
+
+Then type commands interactively:
+```
+TONE 0 5
+TONE 1 3
+BEAT 0
+BEAT 1
+play
+quit
+```
+
+### UART Protocol
+
+Messages sent from FPGA → GUI (newline-delimited ASCII):
+
+- `BEAT <index>` - Set current beat (0-15), highlighted in yellow
+- `TONE <beat> <tone>` - Assign tone (0-7) to beat position
+  - Tone 0 = no sound (gray)
+  - Tones 1-7 = rainbow colors (red → magenta)
+
+Example sequence from FPGA:
+```
+TONE 0 3
+TONE 2 5
+TONE 4 7
+BEAT 0
+BEAT 1
+BEAT 2
+...
+```
+
+### Connecting to Real FPGA
+
+When your FPGA UART is ready, replace stdin reading with `QSerialPort`:
+
+1. Open serial port (e.g., `/dev/ttyUSB0` at 115200 baud)
+2. Read newline-delimited messages
+3. Pass to `UARTParser::parseLine()`
+
+The `SequencerModel` and `UARTParser` are hardware-agnostic and ready for integration.
 
