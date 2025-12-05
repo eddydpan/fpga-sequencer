@@ -7,6 +7,7 @@ set(CMAKE_AUTORCC ON)
 add_library(sequencer
   sequencer_model.cpp
   uart_parser.cpp
+  pitch_graph_widget.cpp
 )
 
 target_include_directories(sequencer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

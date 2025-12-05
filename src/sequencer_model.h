@@ -3,31 +3,34 @@
 
 #include <vector>
 #include <functional>
+#include <cstdint>
 
 // Passive model: stores state received from FPGA via UART
-// No internal timing/sequencing - GUI only displays what FPGA sends
+// Protocol: Each beat has 3-bit pitch value (0-7, where 0=off, 1-7=pitches)
 class SequencerModel {
 public:
     explicit SequencerModel(int beats = 16);
 
-    void setToneForBeat(int beat, int tone);
-    int getToneForBeat(int beat) const;
+    // Set pitch for a specific beat (0=off, 1-7=pitch)
+    void setBeatPitch(int beat, int pitch);
+    int getBeatPitch(int beat) const;
+
+    // Check if specific beat is active (pitch > 0)
+    bool isBeatActive(int beat) const;
 
     void setCurrentBeat(int beat);
     int currentBeat() const;
 
     int numBeats() const { return m_beats; }
 
-    // Callback invoked when current beat changes (for GUI update)
+    // Callbacks for GUI updates
     std::function<void(int)> onBeatChanged;
-
-    // Callback invoked when tone changes (for GUI update)
-    std::function<void(int beat, int tone)> onToneChanged;
+    std::function<void(int beat, int pitch)> onBeatPitchChanged;
 
 private:
     int m_beats;
     int m_current;
-    std::vector<int> m_tones; // tone id per beat (0-7)
+    std::vector<int> m_pitches; // 3-bit pitch per beat (0-7)
 };
 
 #endif // SEQUENCER_MODEL_H
