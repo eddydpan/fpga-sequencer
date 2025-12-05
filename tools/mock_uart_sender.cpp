@@ -15,25 +15,26 @@ void demonstrateSequence() {
     std::cerr << "=== Mock UART Sender ===\n";
     std::cerr << "Simulating FPGA sequencer output...\n\n";
     
-    // Initialize sequence: set some tones
-    std::cerr << "Setting up beat pattern...\n";
-    sendCommand("TONE 0 3");
-    sendCommand("TONE 2 5");
-    sendCommand("TONE 4 7");
-    sendCommand("TONE 6 2");
-    sendCommand("TONE 8 4");
-    sendCommand("TONE 10 6");
-    sendCommand("TONE 12 1");
-    sendCommand("TONE 14 3");
+    // Initialize sequence: set pitches for some beats
+    std::cerr << "Setting up beat pattern with pitches (3-bit per beat)...\n";
+    sendCommand("BEAT 0 3");    // Beat 0, pitch 3
+    sendCommand("BEAT 2 5");    // Beat 2, pitch 5
+    sendCommand("BEAT 4 7");    // Beat 4, pitch 7
+    sendCommand("BEAT 6 2");    // Beat 6, pitch 2
+    sendCommand("BEAT 8 4");    // Beat 8, pitch 4
+    sendCommand("BEAT 10 6");   // Beat 10, pitch 6
+    sendCommand("BEAT 12 1");   // Beat 12, pitch 1
+    sendCommand("BEAT 14 3");   // Beat 14, pitch 3
     
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     
-    // Simulate beat progression
-    std::cerr << "\nPlaying sequence (beat every 500ms)...\n";
+    // Simulate beat progression (sequencer cycles through beats)
+    std::cerr << "\nPlaying sequence (beat every 62ms, full sequence in 1 second)...\n";
     for (int i = 0; i < 32; ++i) { // 2 loops of 16 beats
         int beat = i % 16;
-        sendCommand("BEAT " + std::to_string(beat));
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        // FPGA would send current beat with its stored pitch
+        // For demo, we'll just send beat advance (pitch already set)
+        std::this_thread::sleep_for(std::chrono::milliseconds(62));
     }
     
     std::cerr << "\nSequence complete.\n";
@@ -42,10 +43,9 @@ void demonstrateSequence() {
 void interactiveMode() {
     std::cerr << "=== Interactive UART Mode ===\n";
     std::cerr << "Commands:\n";
-    std::cerr << "  TONE <beat> <tone>  - Set tone (0-7) for beat (0-15)\n";
-    std::cerr << "  BEAT <n>            - Set current beat (0-15)\n";
-    std::cerr << "  play                - Auto-play sequence\n";
-    std::cerr << "  quit                - Exit\n\n";
+    std::cerr << "  BEAT <index> <pitch>  - Set beat (0-15) with pitch (0-7, 0=off)\n";
+    std::cerr << "  play                  - Auto-play sequence\n";
+    std::cerr << "  quit                  - Exit\n\n";
     
     std::string line;
     while (std::getline(std::cin, line)) {
@@ -70,9 +70,12 @@ int main(int argc, char **argv) {
         std::cerr << "  " << argv[0] << " --demo | <path_to_gui>\n";
         std::cerr << "  " << argv[0] << " --interactive | <path_to_gui>\n";
         std::cerr << "\nExamples:\n";
-        std::cerr << "  " << argv[0] << " --demo | ./build/bin/fpga_sequencer_gui\n";
-        std::cerr << "  echo 'TONE 0 5' | ./build/bin/fpga_sequencer_gui\n";
-        std::cerr << "  echo 'BEAT 3' | ./build/bin/fpga_sequencer_gui\n";
+        std::cerr << "  " << argv[0] << " --demo | ./build/src/fpga_sequencer_gui\n";
+        std::cerr << "  echo 'BEAT 0 5' | ./build/src/fpga_sequencer_gui\n";
+        std::cerr << "  echo 'BEAT 3 7' | ./build/src/fpga_sequencer_gui\n";
+        std::cerr << "\nProtocol: BEAT <index> <pitch>\n";
+        std::cerr << "  index: 0-15 (beat position)\n";
+        std::cerr << "  pitch: 0-7 (0=off, 1-7=pitch values, 3 bits)\n";
         return 1;
     }
     

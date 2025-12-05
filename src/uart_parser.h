@@ -3,6 +3,7 @@
 
 #include <string>
 #include <functional>
+#include <cstdint>
 
 class SequencerModel;
 
@@ -14,9 +15,7 @@ public:
     void parseLine(const std::string &line);
 
     // Callbacks for external handling (optional)
-    std::function<void(int beat)> onBeatReceived;
-    std::function<void(int beat, int tone)> onToneReceived;
-    std::function<void(int ms)> onTempoReceived;
+    std::function<void(int beat, int pitch)> onBeatReceived;
 
 private:
     SequencerModel *m_model;
