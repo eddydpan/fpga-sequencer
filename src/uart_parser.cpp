@@ -13,22 +13,13 @@ void UARTParser::parseLine(const std::string &line) {
     iss >> cmd;
 
     if (cmd == "BEAT") {
-        int beat;
-        if (iss >> beat) {
+        // Format: BEAT <beat_index> <pitch>
+        // pitch is 3 bits: 0=off, 1-7=pitch values
+        int beat, pitch;
+        if (iss >> beat >> pitch) {
+            m_model->setBeatPitch(beat, pitch);
             m_model->setCurrentBeat(beat);
-            if (onBeatReceived) onBeatReceived(beat);
-        }
-    } else if (cmd == "TONE") {
-        int beat, tone;
-        if (iss >> beat >> tone) {
-            m_model->setToneForBeat(beat, tone);
-            if (onToneReceived) onToneReceived(beat, tone);
-        }
-    } else if (cmd == "TEMPO") {
-        int ms;
-        if (iss >> ms) {
-            // FPGA sends tempo but GUI doesn't use it (no internal timing)
-            if (onTempoReceived) onTempoReceived(ms);
+            if (onBeatReceived) onBeatReceived(beat, pitch);
         }
     }
 }

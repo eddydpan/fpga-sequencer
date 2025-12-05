@@ -21,18 +21,42 @@ iceBlinkPico FPGA
 
 ## Qt Visual Interface & TDD
 
-This repo contains a **passive Qt GUI visualizer** for the FPGA sequencer. The GUI **does not implement any sequencer logic** - it only displays data received from the FPGA over UART.
+This repo contains a **passive Qt GUI visualizer** for the FPGA sequencer with **3-bit pitch encoding per beat**.
 
 **What this codebase does:**
-- ✅ Parses UART messages (`BEAT <n>`, `TONE <beat> <tone>`) from FPGA
-- ✅ Visualizes 16 beats with color-coded tones (rainbow mapping)
-- ✅ Highlights current beat with yellow border
-- ✅ Provides mock UART tool for testing without hardware
+- ✅ Parses UART messages encoding 3-bit pitch per beat (`BEAT <index> <pitch>`)
+- ✅ Visualizes 16 beats with on/off state (green=active, gray=off)
+- ✅ Shows pitch values on each beat button
+- ✅ Real-time pitch graph display showing pitch over time
+- ✅ Serial port selection (when Qt5SerialPort available)
+- ✅ Save sequence to file functionality
+- ✅ Auto-advancing beat display (62.5ms per beat, full sequence in 1 second)
 
 **What this codebase does NOT do:**
-- ❌ No internal sequencer logic, timing, or beat generation
+- ❌ No internal sequencer logic or beat generation
 - ❌ No LED blinking or audio output
-- ❌ No onboard FPGA implementation (that lives in hardware)
+- ❌ No onboard FPGA implementation (hardware lives elsewhere)
+
+### New UART Protocol (3-bit pitch per beat)
+
+**Message format:**
+```
+BEAT <index> <pitch>
+```
+- `index`: Beat position (0-15)
+- `pitch`: 3-bit value (0-7)
+  - 0 = Off (no sound)
+  - 1-7 = Pitch values in one octave
+
+**Example sequence from FPGA:**
+```
+BEAT 0 3    # Beat 0 with pitch 3
+BEAT 2 5    # Beat 2 with pitch 5  
+BEAT 4 7    # Beat 4 with pitch 7
+BEAT 6 0    # Beat 6 off
+```
+
+Each BEAT command sets both the pitch for that beat position AND advances the sequencer to that beat.
 
 ### Build Instructions
 
@@ -60,19 +84,13 @@ cd build
 ./tools/mock_uart_sender --demo | ./src/fpga_sequencer_gui
 ```
 
-This will:
-1. Set up a beat pattern with various tones
-2. Advance through beats every 500ms
-3. Display in the GUI with colors and highlighting
+**Method 2: Manual Commands**
 
-**Method 2: Manual UART Injection**
-
-Inject individual commands via echo/pipe:
+Inject individual commands:
 
 ```bash
-# Start GUI and pipe commands
 cd build
-(echo "TONE 0 5"; echo "TONE 3 7"; echo "BEAT 0"; sleep 1; echo "BEAT 3") | ./src/fpga_sequencer_gui
+(echo "BEAT 0 5"; echo "BEAT 3 7"; echo "BEAT 6 2"; sleep 2) | ./src/fpga_sequencer_gui
 ```
 
 **Method 3: Interactive Mode**
@@ -82,35 +100,28 @@ cd build
 ./tools/mock_uart_sender --interactive | ./src/fpga_sequencer_gui
 ```
 
-Then type commands interactively:
+Then type commands:
 ```
-TONE 0 5
-TONE 1 3
-BEAT 0
-BEAT 1
+BEAT 0 3
+BEAT 1 5
+BEAT 2 7
 play
 quit
 ```
 
-### UART Protocol
+### GUI Features
 
-Messages sent from FPGA → GUI (newline-delimited ASCII):
+- **Beat Grid**: 16 beat boxes (2 rows of 8)
+  - Green background = pitch assigned (active)
+  - Gray background = no pitch (off)
+  - Yellow border = current beat
+  - Shows beat number and pitch value (e.g., "0\nP3")
+  
+- **Pitch Graph**: Real-time visualization of pitch values over time
 
-- `BEAT <index>` - Set current beat (0-15), highlighted in yellow
-- `TONE <beat> <tone>` - Assign tone (0-7) to beat position
-  - Tone 0 = no sound (gray)
-  - Tones 1-7 = rainbow colors (red → magenta)
+- **Serial Port**: Select `/dev/ttyUSB*` port to connect to real FPGA (requires Qt5SerialPort)
 
-Example sequence from FPGA:
-```
-TONE 0 3
-TONE 2 5
-TONE 4 7
-BEAT 0
-BEAT 1
-BEAT 2
-...
-```
+- **Save**: Export sequence state to text file
 
 ### Connecting to Real FPGA
 

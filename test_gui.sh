@@ -5,14 +5,17 @@ cd "$(dirname "$0")/build" || exit 1
 
 echo "=== FPGA Sequencer GUI Test ==="
 echo ""
-echo "This will run the mock UART sender and GUI for 5 seconds."
-echo "You should see a Qt window with 16 beat boxes changing colors."
-echo "Press Ctrl+C to stop early."
+echo "Running mock UART sender with GUI for 3 seconds."
+echo "The GUI will parse UART commands and update the display."
+echo "Check the console output to verify parsing."
 echo ""
-echo "Starting in 2 seconds..."
-sleep 2
 
-timeout 5 ./tools/mock_uart_sender --demo | ./src/fpga_sequencer_gui
+timeout 3 ./tools/mock_uart_sender --demo 2>&1 | timeout 3 ./src/fpga_sequencer_gui 2>&1
 
 echo ""
-echo "Test complete! If you saw a GUI window with colored boxes, it's working."
+echo "Test complete! Output above shows UART parsing."
+echo ""
+echo "To run with actual display (requires X/Wayland):"
+echo "  cd build"
+echo "  ./tools/mock_uart_sender --demo | ./src/fpga_sequencer_gui"
+
