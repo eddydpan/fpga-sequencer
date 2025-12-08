@@ -1,15 +1,16 @@
 #ifndef PITCH_GRAPH_WIDGET_H
 #define PITCH_GRAPH_WIDGET_H
 
+#include <QScrollArea>
 #include <QWidget>
 #include <vector>
 
-class PitchGraphWidget : public QWidget {
+class PitchGraphCanvas : public QWidget {
     Q_OBJECT
 public:
-    explicit PitchGraphWidget(QWidget *parent = nullptr);
-
-    void addPitchSample(int pitch, int beat); // pitch 0-7, beat 0-15
+    explicit PitchGraphCanvas(QWidget *parent = nullptr);
+    
+    void addPitchSample(int pitch, int beat);
     void clear();
 
 protected:
@@ -21,7 +22,21 @@ private:
         int pitch;
     };
     std::vector<Sample> m_samples;
-    static constexpr int MAX_SAMPLES = 100; // Show last 100 samples
+    static constexpr int SAMPLE_WIDTH = 4; // pixels per sample
+    static constexpr int VISIBLE_SAMPLES = 50; // samples in "tail" view
+    static constexpr int MAX_SAMPLES = 250; // 4 seconds at 62.5ms = ~64 samples, give buffer
+};
+
+class PitchGraphWidget : public QScrollArea {
+    Q_OBJECT
+public:
+    explicit PitchGraphWidget(QWidget *parent = nullptr);
+
+    void addPitchSample(int pitch, int beat);
+    void clear();
+
+private:
+    PitchGraphCanvas *m_canvas;
 };
 
 #endif // PITCH_GRAPH_WIDGET_H

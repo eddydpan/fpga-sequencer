@@ -1,7 +1,7 @@
 #!/bin/bash
 # Quick test script for UART → GUI visualization
 
-cd "$(dirname "$0")/build" || exit 1
+cd "$(dirname "$0")/../build" || exit 1
 
 echo "=== FPGA Sequencer GUI Test ==="
 echo ""
