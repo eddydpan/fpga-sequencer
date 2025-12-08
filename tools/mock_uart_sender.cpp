@@ -5,10 +5,17 @@
 #include <thread>
 #include <chrono>
 #include <string>
+#include <bitset>
 
 void sendCommand(const std::string &cmd) {
     std::cout << cmd << std::endl;
     std::cout.flush();
+}
+
+std::string toBinary(int beat, int pitch) {
+    std::bitset<4> beatBits(beat);
+    std::bitset<3> pitchBits(pitch);
+    return beatBits.to_string() + pitchBits.to_string();
 }
 
 void demonstrateSequence() {
@@ -40,11 +47,41 @@ void demonstrateSequence() {
     std::cerr << "\nSequence complete.\n";
 }
 
+void demonstrateBinarySequence() {
+    std::cerr << "=== Mock UART Sender (Binary Format) ===\n";
+    std::cerr << "Simulating FPGA UART output with 7-bit binary protocol...\n";
+    std::cerr << "Format: <4-bit beat index><3-bit pitch>\n\n";
+    
+    int pattern[][2] = {
+        {0, 3},   // 0000011
+        {1, 0},   // 0001000 (turn off beat 1)
+        {2, 4},   // 0010100
+        {4, 7},   // 0100111
+        {6, 2},   // 0110010
+        {8, 5},   // 1000101
+        {10, 6},  // 1010110
+        {12, 1},  // 1100001
+    };
+    
+    for (auto &p : pattern) {
+        std::string binary = toBinary(p[0], p[1]);
+        std::cerr << "Sending beat " << p[0] << ", pitch " << p[1] 
+                  << " -> " << binary << "\n";
+        sendCommand(binary);
+        std::this_thread::sleep_for(std::chrono::milliseconds(400));
+    }
+    
+    std::cerr << "\nBinary demonstration complete.\n";
+}
+
 void interactiveMode() {
     std::cerr << "=== Interactive UART Mode ===\n";
     std::cerr << "Commands:\n";
-    std::cerr << "  BEAT <index> <pitch>  - Set beat (0-15) with pitch (0-7, 0=off)\n";
-    std::cerr << "  play                  - Auto-play sequence\n";
+    std::cerr << "  BEAT <index> <pitch>  - Text format: Set beat (0-15) with pitch (0-7)\n";
+    std::cerr << "  <7-bit binary>        - Binary format: 4-bit index + 3-bit pitch\n";
+    std::cerr << "                          Example: 0000011 = beat 0, pitch 3\n";
+    std::cerr << "                                   0100000 = beat 4, pitch 0 (off)\n";
+    std::cerr << "  play                  - Auto-play text sequence\n";
     std::cerr << "  quit                  - Exit\n\n";
     
     std::string line;
@@ -63,19 +100,29 @@ void interactiveMode() {
 int main(int argc, char **argv) {
     if (argc > 1 && std::string(argv[1]) == "--demo") {
         demonstrateSequence();
+    } else if (argc > 1 && std::string(argv[1]) == "--demo-binary") {
+        demonstrateBinarySequence();
     } else if (argc > 1 && std::string(argv[1]) == "--interactive") {
         interactiveMode();
     } else {
         std::cerr << "Usage:\n";
         std::cerr << "  " << argv[0] << " --demo | <path_to_gui>\n";
+        std::cerr << "  " << argv[0] << " --demo-binary | <path_to_gui>\n";
         std::cerr << "  " << argv[0] << " --interactive | <path_to_gui>\n";
         std::cerr << "\nExamples:\n";
         std::cerr << "  " << argv[0] << " --demo | ./build/src/fpga_sequencer_gui\n";
-        std::cerr << "  echo 'BEAT 0 5' | ./build/src/fpga_sequencer_gui\n";
+        std::cerr << "  " << argv[0] << " --demo-binary | ./build/src/fpga_sequencer_gui\n";
+        std::cerr << "  echo '0000011' | ./build/src/fpga_sequencer_gui  # beat 0, pitch 3\n";
         std::cerr << "  echo 'BEAT 3 7' | ./build/src/fpga_sequencer_gui\n";
-        std::cerr << "\nProtocol: BEAT <index> <pitch>\n";
-        std::cerr << "  index: 0-15 (beat position)\n";
-        std::cerr << "  pitch: 0-7 (0=off, 1-7=pitch values, 3 bits)\n";
+        std::cerr << "\nProtocol:\n";
+        std::cerr << "  Text:   BEAT <index> <pitch>\n";
+        std::cerr << "  Binary: <4-bit beat><3-bit pitch> (7 bits total)\n";
+        std::cerr << "    index: 0-15 (beat position)\n";
+        std::cerr << "    pitch: 0-7 (0=off, 1-7=pitch values)\n";
+        std::cerr << "\nBinary Examples:\n";
+        std::cerr << "  0000011 = beat 0, pitch 3\n";
+        std::cerr << "  0100000 = beat 4, pitch 0 (off)\n";
+        std::cerr << "  1010110 = beat 10, pitch 6\n";
         return 1;
     }
     
