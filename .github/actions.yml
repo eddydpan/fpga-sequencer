@@ -1,0 +1,65 @@
+name: FPGA Synthesis and Test
+
+on:
+  push:
+    branches: [ main, feature/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  synthesis-and-test:
+    runs-on: ubuntu-24.04
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Install OSS CAD Suite
+      run: |
+        wget -q https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2024-11-14/oss-cad-suite-linux-x64-20241114.tgz
+        tar -xzf oss-cad-suite-linux-x64-20241114.tgz
+        echo "$GITHUB_WORKSPACE/oss-cad-suite/bin" >> $GITHUB_PATH
+    
+    - name: Verify OSS CAD Suite installation
+      run: |
+        source oss-cad-suite/environment
+        yosys -V
+        iverilog -V
+        nextpnr-ice40 --version
+    
+    - name: Synthesize top module
+      run: |
+        source oss-cad-suite/environment
+        cd hdl
+        make -f ../Makefile build
+    
+    - name: Run testbenches
+      run: |
+        source oss-cad-suite/environment
+        cd testbench
+        for tb in *_tb.sv; do
+          if [ -f "$tb" ]; then
+            base_name="${tb%_tb.sv}"
+            echo "Running testbench: $tb"
+            iverilog -g2012 -o "${base_name}_sim" "$tb" -I../hdl
+            vvp "${base_name}_sim"
+          fi
+        done
+    
+    # - name: Upload synthesis artifacts
+    #   uses: actions/upload-artifact@v4
+    #   if: always()
+    #   with:
+    #     name: synthesis-results
+    #     path: |
+    #       hdl/*.json
+    #       hdl/*.asc
+    #       hdl/*.bin
+    
+    # - name: Upload testbench waveforms
+    #   uses: actions/upload-artifact@v4
+    #   if: always()
+    #   with:
+    #     name: testbench-waveforms
+    #     path: |
+    #       testbench/*.vcd
