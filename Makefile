@@ -1,12 +1,12 @@
-filename = hdl/top
-main_filename = hdl/top
-testbench = testbench/top
+filename = top
+main_filename = top
 visual_style_file = visual_style.gtkw
 pcf_file = pcf/iceBlinkPico.pcf
+hdl_dir = hdl
 
-build: $(filename).sv $(pcf_file)
-	yosys -p "synth_ice40 -top top -json $(filename).json" $(filename).sv
-	nextpnr-ice40 --up5k --package sg48 --json $(filename).json --pcf $(pcf_file) --asc $(filename).asc --pcf-allow-unconstrained
+build: $(hdl_dir)/$(filename).sv $(pcf_file)
+	yosys -p "synth_ice40 -top top -json $(filename).json" $(hdl_dir)/$(filename).sv
+	nextpnr-ice40 --up5k --package sg48 --top top --json $(filename).json --pcf $(pcf_file) --asc $(filename).asc
 	icepack $(filename).asc $(filename).bin
 
 prog: #for sram
@@ -14,10 +14,10 @@ prog: #for sram
 
 clean:
 	rm -rf $(filename).blif $(filename).asc $(filename).json $(filename).bin
-	rm -rf $(testbench) $(testbench).vcd
 
 test:
-	iverilog -g2012 -I./hdl -o $(testbench) $(testbench)_tb.sv && vvp $(testbench) && gtkwave $(testbench).vcd $(visual_style_file)
+	iverilog -g2012 -o $(main_filename) $(main_filename)_tb.sv && vvp $(main_filename) && gtkwave $(main_filename).vcd visual_style.gtkw
 
 show:
-	gtkwave $(testbench).vcd $(visual_style_file)
+	gtkwave $(main_filename).vcd $(visual_style_file)
+
