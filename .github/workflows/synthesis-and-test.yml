@@ -30,8 +30,7 @@ jobs:
     - name: Synthesize top module
       run: |
         source oss-cad-suite/environment
-        cd hdl
-        make -f ../Makefile build
+        make build
     
     - name: Run testbenches
       run: |
