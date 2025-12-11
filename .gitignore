@@ -1,2 +1,6 @@
 top_tb
 top_tb.vcd
+button_matrix_controller.vcd
+hdl/top.asc
+hdl/top.bin
+hdl/top.json

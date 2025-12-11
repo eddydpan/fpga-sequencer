@@ -1,11 +1,12 @@
-filename = top
-main_filename = top
+filename = hdl/top
+main_filename = hdl/top
+testbench = testbench
 visual_style_file = visual_style.gtkw
 pcf_file = pcf/iceBlinkPico.pcf
 
-build:
+build: $(filename).sv $(pcf_file)
 	yosys -p "synth_ice40 -top top -json $(filename).json" $(filename).sv
-	nextpnr-ice40 --up5k --package sg48 --json $(filename).json --pcf $(pcf_file) --asc $(filename).asc
+	nextpnr-ice40 --up5k --package sg48 --json $(filename).json --pcf $(pcf_file) --asc $(filename).asc --pcf-allow-unconstrained
 	icepack $(filename).asc $(filename).bin
 
 prog: #for sram
