@@ -4,7 +4,7 @@
 module top (
     input logic clk,
     input logic _39a, _38b, _41a, _42b, // button col inputs
-    output logic _31b, _29b, _37a, _36b, // row pin outputs for matrix scanning
+    output logic _36b, _37a, _29b, _31b, // row pin outputs for matrix scanning
     output logic LED,
     output logic RGB_R, 
     output logic RGB_G, 
