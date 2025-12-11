@@ -1,9 +1,10 @@
 `include "model.sv"
+`include "button_matrix_controller.sv"
 
 module top (
     input logic clk,
-    input logic _31b, _29b, _37a, _36b, // button row inputs
     input logic _39a, _38b, _41a, _42b, // button col inputs
+    output logic _31b, _29b, _37a, _36b, // row pin outputs for matrix scanning
     output logic LED,
     output logic RGB_R, 
     output logic RGB_G, 
@@ -39,10 +40,11 @@ module top (
     // Map row and col to beat index and pitch
     assign beat_index = (row * 4) + col;
     
-    // Waiting on hardware before locking in how to make the debouncer module
-    button_debouncer u_debouncer (
+    logic[3:0] button_index; // 4 bits for 16 buttons
+    button_matrix_controller u_button_matrix_controller (
         .clk(clk),
-        .button_in(_31b | _29b | _37a | _36b | _39a | _38b | _41a | _42b),
-        .button_out(data_in[6:4]) // 3 bits for pitch
+        .col_inputs({_39a, _38b, _41a, _42b}),
+        .row_outputs({_31b, _29b, _37a, _36b}),
+        .button_index(button_index)
     );
 endmodule
