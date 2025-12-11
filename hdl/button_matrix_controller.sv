@@ -9,16 +9,21 @@ module button_matrix_controller(
     output logic[3:0] button_index, // Index of detected button (0-15)
     output logic button_pressed     // High when a button is detected
 );
-
+    localparam debounce_cycles = 1200; // 12MHz clock -> 10ms debounce
     logic [1:0] row_scan = 0;       // Current row being scanned (0-3)
     logic [1:0] scan_state = 0;     // 0: set row, 1: read columns
-    logic [15:0] clk_div = 0;       // Clock divider for slower scanning
+    logic [$clog2(debounce_cycles)-1:0] clk_div = 0;       // Clock divider for slower scanning
     
     // Row scanning: Set one row low at a time
     always_ff @(posedge clk) begin
-        clk_div <= clk_div + 1;
-        
-        // Only update scan on clock divider rollover (every 65536 clocks)
+        // Clock divider for debounce timing
+        if (clk_div == debounce_cycles - 1) begin
+            clk_div <= 0;
+        end else begin
+            clk_div <= clk_div + 1;
+        end
+
+        // Only update scan on clk_div reset
         if (clk_div == 0) begin
             if (scan_state == 0) begin
                 // Set the row outputs
