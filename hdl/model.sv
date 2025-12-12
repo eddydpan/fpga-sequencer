@@ -9,13 +9,14 @@ module model(
     logic[3:0] beat_index;
 
     initial begin
-        // Initialize all bits to 0
+        // Initialize all bits to 0 (no pitch on all beats)
         beats = 48'b0;
     end
 
     // Update beats on clock edge
     always_ff @(posedge clk) begin
         beat_index = data_in[3:0];
+        // part-select operator
         beats[beat_index*3 +: 3] <= data_in[6:4];
     end
 endmodule
