@@ -19,7 +19,7 @@ module top(
 
     // Instantiate model
     logic[6:0] data_in;
-    logic[47:0] beats; // 48 bits: 16 beats x 3 bits each
+    logic[47:0] beats; // 48 bit register: 16 beats x 3 bits each
 
     model u_model (
         .clk(clk),
@@ -38,6 +38,12 @@ module top(
         .button_pressed(button_pressed)
     );
     
+    always_ff @(posedge clk) begin
+        if (button_pressed) begin
+            data_in <= {3'b000, button_index}; // TODO: map pitch bits w/ rotary encoder #3
+        end
+    end
+
     // Hardware debugger: Map button_index bits directly to LEDs
     // This will help debug what values are actually being detected
     always_comb begin
