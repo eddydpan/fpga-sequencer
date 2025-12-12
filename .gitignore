@@ -7,3 +7,4 @@ button_matrix_controller.vcd
 .vscode/
 build/
 testbench/top
+
