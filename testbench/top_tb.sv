@@ -1,5 +1,5 @@
 `timescale 10ns/10ns
-`include "../hdl/top.sv"
+`include "hdl/top.sv"
 
 module top_tb;
 
