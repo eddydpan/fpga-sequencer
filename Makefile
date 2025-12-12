@@ -14,6 +14,7 @@ prog: #for sram
 
 clean:
 	rm -rf $(filename).blif $(filename).asc $(filename).json $(filename).bin
+	rm -rf $(testbench) $(testbench).vcd
 
 test:
 	iverilog -g2012 -I./hdl -o $(testbench) $(testbench)_tb.sv && vvp $(testbench) && gtkwave $(testbench).vcd $(visual_style_file)
