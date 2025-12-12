@@ -1,6 +1,6 @@
 filename = hdl/top
 main_filename = hdl/top
-testbench = testbench
+testbench = testbench/top
 visual_style_file = visual_style.gtkw
 pcf_file = pcf/iceBlinkPico.pcf
 
@@ -16,8 +16,7 @@ clean:
 	rm -rf $(filename).blif $(filename).asc $(filename).json $(filename).bin
 
 test:
-	iverilog -g2012 -o $(main_filename) $(main_filename)_tb.sv && vvp $(main_filename) && gtkwave $(main_filename).vcd visual_style.gtkw
+	iverilog -g2012 -I./hdl -o $(testbench) $(testbench)_tb.sv && vvp $(testbench) && gtkwave $(testbench).vcd $(visual_style_file)
 
 show:
-	gtkwave $(main_filename).vcd $(visual_style_file)
-
+	gtkwave $(testbench).vcd $(visual_style_file)
