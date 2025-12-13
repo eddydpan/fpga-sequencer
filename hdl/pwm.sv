@@ -5,9 +5,10 @@
  */
 module pwm_generator (
     input logic clk,
-    input int pwm_interval,
+    input logic [15:0] pwm_interval,
     output logic pwm_out
 );
+    logic [15:0] pwm_count = 16'd0;
     logic wave;
 
     // Implement counter for timing transition in PWM output signal
@@ -33,7 +34,7 @@ endmodule
 module pwm_decoder (
     input logic clk,
     input logic [2:0] note,
-    output int pwm_interval
+    output logic [15:0] pwm_interval
 );
 
     localparam [2:0] NOTE_C4 = 3'b000;
@@ -45,31 +46,23 @@ module pwm_decoder (
     localparam [2:0] NOTE_B4 = 3'b010;
     localparam [2:0] NOTE_C5 = 3'b111;
 
+    logic [15:0] interval;
+
     // set interval frequency based on note
     always_comb begin
-        int interval;
         case (note)
-            NOTE_C4:
-                interval = 22940;
-            NOTE_D4:
-                interval = 20434;
-            NOTE_E4:
-                interval = 18204;
-            NOTE_F4:
-                interval = 17190;
-            NOTE_G4:
-                interval = 15306;
-            NOTE_A4:
-                interval = 13636;
-            NOTE_B4:
-                interval = 12148;
-            NOTE_C5:
-                interval = 11471;
-            default:
-                interval = 5000;
+            NOTE_C4: pwm_interval = 16'd22940;
+            NOTE_D4: pwm_interval = 16'd20434;
+            NOTE_E4: pwm_interval = 16'd18204;
+            NOTE_F4: pwm_interval = 16'd17190;
+            NOTE_G4: pwm_interval = 16'd15306;
+            NOTE_A4: pwm_interval = 16'd13636;
+            NOTE_B4: pwm_interval = 16'd12148;
+            NOTE_C5: pwm_interval = 16'd11471;
+            default: pwm_interval = 16'd5000;
         endcase
     end
 
-    assign pwm_interval = interval;
+    // assign pwm_interval = interval;
 
 endmodule
