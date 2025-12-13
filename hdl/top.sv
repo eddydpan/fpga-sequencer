@@ -11,6 +11,7 @@ module top(
     output logic _37a, 
     output logic _29b, 
     output logic _31b, // row pin outputs for matrix scanning
+    output logic _44b, // audio output pin
     output logic LED,
     output logic RGB_R, 
     output logic RGB_G, 
@@ -20,6 +21,7 @@ module top(
     // Instantiate model
     logic[6:0] data_in;
     logic[47:0] beats; // 48 bit register: 16 beats x 3 bits each
+    logic[3:0] beat_count; // 4 bits for 16 beats
 
     model u_model (
         .clk(clk),
@@ -36,6 +38,13 @@ module top(
         .row_outputs({_31b, _29b, _37a, _36b}),
         .button_index(button_index),
         .button_pressed(button_pressed)
+    );
+
+    audio_controller u_audio_controller (
+        .clk(clk),
+        .beats(beats),
+        .beat_count(beat_count),
+        .pwm_out(_44b)
     );
     
     always_ff @(posedge clk) begin
