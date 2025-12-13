@@ -1,9 +1,10 @@
 `include "pwm.sv"
 
-// Fade top level module
+// PWM top level module
 
 module top #(
-    parameter PWM_INTERVAL = 1200       // CLK frequency is 12MHz, so 1,200 cycles is 100us
+    parameter PWM_INTERVAL = 22940      // CLK frequency is 12MHz, so 1,200 cycles is 100us
+                                        // this is N in freq = clk/(2N)
 )(
     input logic     clk,
     output logic    RGB_R,
@@ -12,16 +13,12 @@ module top #(
     
     logic [$clog2(PWM_INTERVAL) - 1:0] pwm_value;
 
-    initial begin
-        pwm_value <= 1000; // 1000
-    end
 
-    // generates pwm output for red
+    // generates pwm output for speaker
     pwm #(
         .PWM_INTERVAL   (PWM_INTERVAL)
     ) pwm (
-        .clk            (clk), 
-        .pwm_value      (pwm_value), 
+        .clk            (clk),
         .pwm_out        (pwm_out)
     );
 
