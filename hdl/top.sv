@@ -1,5 +1,6 @@
 `include "model.sv"
 `include "button_matrix_controller.sv"
+`include "audio_controller.sv"
 
 module top(
     input logic clk,
@@ -17,13 +18,17 @@ module top(
     output logic RGB_G, 
     output logic RGB_B
 );
-
+    localparam NUM_BEATS = 16;
+    localparam BEATS_BUFFER = $clog2(NUM_BEATS)-1;
     // Instantiate model
     logic[6:0] data_in;
-    logic[47:0] beats; // 48 bit register: 16 beats x 3 bits each
-    logic[3:0] beat_count; // 4 bits for 16 beats
+    logic[NUM_BEATS*4-1:0] beats; // 64 bit register: 16 beats x 4 bits each (pitch)
+    logic[BEATS_BUFFER:0] beat_count; // 4 bits for 16 beats
 
-    model u_model (
+
+    model #(
+        .NUM_BEATS(NUM_BEATS)
+    ) u_model (
         .clk(clk),
         .data_in(data_in),
         .beats(beats)
@@ -40,7 +45,9 @@ module top(
         .button_pressed(button_pressed)
     );
 
-    audio_controller u_audio_controller (
+    audio_controller #(
+        .NUM_BEATS(NUM_BEATS)
+    ) u_audio_controller(
         .clk(clk),
         .beats(beats),
         .beat_count(beat_count),
@@ -49,10 +56,13 @@ module top(
     
     always_ff @(posedge clk) begin
         if (button_pressed) begin
-            data_in <= {3'b000, button_index}; // TODO: map pitch bits w/ rotary encoder #3
+            data_in <= {4'b0001, button_index}; // TODO: map pitch bits w/ rotary encoder #3
+        end
+        else begin
+            // Cast modulo result to 4 bits (enough for values 0-8)
+            data_in <= {BEATS_BUFFER'(beat_count % 9), beat_count};
         end
     end
-
     // Hardware debugger: Map button_index bits directly to LEDs
     // This will help debug what values are actually being detected
     always_comb begin
