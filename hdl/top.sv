@@ -19,12 +19,15 @@ module top(
     output logic RGB_B
 );
     localparam NUM_BEATS = 16;
-    localparam BEATS_BUFFER = $clog2(NUM_BEATS)-1;
+    localparam BEATS_BUFFER = $clog2(NUM_BEATS);
+    localparam CLK_FREQ = 12_000_000; // 12 MHz
     // Instantiate model
-    logic[6:0] data_in;
+    logic[7:0] data_in;
     logic[NUM_BEATS*4-1:0] beats; // 64 bit register: 16 beats x 4 bits each (pitch)
-    logic[BEATS_BUFFER:0] beat_count; // 4 bits for 16 beats
-
+    logic[BEATS_BUFFER-1:0] beat_count; // 4 bits for 16 beats
+    logic [$clog2(CLK_FREQ)-1:0] clk_count = 0;
+    logic [3:0] seconds = 4'b0000;
+    logic [3:0] pitch_data = 4'b0000;
 
     model #(
         .NUM_BEATS(NUM_BEATS)
@@ -55,13 +58,22 @@ module top(
     );
     
     always_ff @(posedge clk) begin
+        // Increment seconds counter
+        if (clk_count == CLK_FREQ - 1) begin
+            seconds <= seconds + 1;
+            clk_count <= 0;
+        end else begin
+            clk_count <= clk_count + 1;
+        end
+
         if (button_pressed) begin
-            data_in <= {4'b0001, button_index}; // TODO: map pitch bits w/ rotary encoder #3
+            data_in <= {seconds, button_index}; // TODO: map pitch bits w/ rotary encoder #3
         end
-        else begin
-            // Cast modulo result to 4 bits (enough for values 0-8)
-            data_in <= {BEATS_BUFFER'(beat_count % 9), beat_count};
-        end
+        // else begin
+        //     // Cast modulo result to 4 bits (enough for values 0-8)
+        //     pitch_data <= seconds % 9;
+        //     data_in <= {pitch_data, beat_count};
+        // end
     end
     // Hardware debugger: Map button_index bits directly to LEDs
     // This will help debug what values are actually being detected
