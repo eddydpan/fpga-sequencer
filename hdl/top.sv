@@ -22,16 +22,18 @@ module top(
     output logic RGB_G, 
     output logic RGB_B
 );
+    localparam PERIOD = 10'd4;
     localparam NUM_BEATS = 16;
     localparam BEATS_BUFFER = $clog2(NUM_BEATS);
     localparam CLK_FREQ = 12_000_000; // 12 MHz
     // Instantiate model
-    logic[7:0] data_in;
-    logic[NUM_BEATS*4-1:0] beats; // 64 bit register: 16 beats x 4 bits each (pitch)
-    logic[BEATS_BUFFER-1:0] beat_count; // 4 bits for 16 beats
+    logic [7:0] data_in;
+    logic [NUM_BEATS*4-1:0] beats; // 64 bit register: 16 beats x 4 bits each (pitch)
+    logic [BEATS_BUFFER-1:0] beat_count; // 4 bits for 16 beats
     logic [$clog2(CLK_FREQ)-1:0] clk_count = 0;
+    logic [3:0] seconds;
 
-    logic [2:0] rotary_position;
+    logic [3:0] rotary_position;
     logic re_button_pressed;
 
     model #(
@@ -63,7 +65,9 @@ module top(
     );
 
     audio_controller #(
-        .NUM_BEATS(NUM_BEATS)
+        .CLK_FREQ(CLK_FREQ),
+        .NUM_BEATS(NUM_BEATS),
+        .PERIOD(PERIOD)
     ) u_audio_controller(
         .clk(clk),
         .beats(beats),
