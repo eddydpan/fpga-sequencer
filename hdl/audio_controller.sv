@@ -14,6 +14,7 @@ module audio_controller #(
     end
     
     localparam [31:0] beat_clock_interval = 12_000_000 / NUM_BEATS;
+    logic [31:0] clk_counter = 0;  // Counter for clock cycles
     logic [3:0] pitch;
     logic [15:0] pwm_interval;
 
@@ -28,19 +29,25 @@ module audio_controller #(
         .pwm_interval(pwm_interval),
         .pwm_out(pwm_out)
     );
+    
     always @(posedge clk) begin
-        // Clock divider based off beats
-        if (clk % (beat_clock_interval) == 0) begin
-            beat_count <= beat_count + 1;
+        // Increment clock counter
+        clk_counter <= clk_counter + 1;
+        
+        // When counter reaches beat_clock_interval, move to next beat
+        if (clk_counter >= beat_clock_interval - 1) begin
+            clk_counter <= 0;
+            
+            // Increment beat_count and wrap at NUM_BEATS
+            if (beat_count == NUM_BEATS - 1) begin
+                beat_count <= 0;
+            end else begin
+                beat_count <= beat_count + 1;
+            end
         end
-        // if (beat_count == NUM_BEATS - 1) begin
-        //     beat_count <= 0;
-        // end else begin
-        //     beat_count <= beat_count + 1;
-        // end
 
+        // Extract pitch for current beat from beats register
         pitch <= beats[beat_count*4 +: 4];
-
     end
 
 
