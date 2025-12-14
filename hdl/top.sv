@@ -13,10 +13,10 @@ module top(
     output logic _37a, 
     output logic _29b, 
     output logic _31b, // row pin outputs for matrix scanning
-    output logic _44b, // audio output pin
+    output logic _48b, // audio output pin
     input logic _45a, // rotary encoder button
-    input logic _3b, // rotary encoder output B
-    input logic _5a, // rotary encoder output A
+    input logic _44b, // rotary encoder output B
+    input logic _43a, // rotary encoder output A
     output logic LED,
     output logic RGB_R, 
     output logic RGB_G, 
@@ -56,8 +56,8 @@ module top(
     rotary_encoder u_rotary_encoder(
         .clk(clk),
         .button(_45a),
-        .signal_a(_5a),
-        .signal_b(_3b),
+        .signal_a(_43a),
+        .signal_b(_44b),
         .button_pressed(re_button_pressed),
         .rotary_position(rotary_position)
     );
@@ -68,7 +68,7 @@ module top(
         .clk(clk),
         .beats(beats),
         .beat_count(beat_count),
-        .pwm_out(_44b)
+        .pwm_out(_48b)
     );
     
     always_ff @(posedge clk) begin
