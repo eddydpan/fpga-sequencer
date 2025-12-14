@@ -1,6 +1,7 @@
 `include "model.sv"
 `include "button_matrix_controller.sv"
 `include "audio_controller.sv"
+`include "rotary_encoder.sv"
 
 module top(
     input logic clk,
@@ -13,6 +14,9 @@ module top(
     output logic _29b, 
     output logic _31b, // row pin outputs for matrix scanning
     output logic _44b, // audio output pin
+    input logic _45a, // rotary encoder button
+    input logic _3b, // rotary encoder output B
+    input logic _5a, // rotary encoder output A
     output logic LED,
     output logic RGB_R, 
     output logic RGB_G, 
@@ -26,8 +30,9 @@ module top(
     logic[NUM_BEATS*4-1:0] beats; // 64 bit register: 16 beats x 4 bits each (pitch)
     logic[BEATS_BUFFER-1:0] beat_count; // 4 bits for 16 beats
     logic [$clog2(CLK_FREQ)-1:0] clk_count = 0;
-    logic [3:0] seconds = 4'b0000;
-    logic [3:0] pitch_data = 4'b0000;
+
+    logic [2:0] rotary_position;
+    logic re_button_pressed;
 
     model #(
         .NUM_BEATS(NUM_BEATS)
@@ -46,6 +51,15 @@ module top(
         .row_outputs({_31b, _29b, _37a, _36b}),
         .button_index(button_index),
         .button_pressed(button_pressed)
+    );
+
+    rotary_encoder u_rotary_encoder(
+        .clk(clk),
+        .button(_45a),
+        .signal_a(_5a),
+        .signal_b(_3b),
+        .button_pressed(re_button_pressed),
+        .rotary_position(rotary_position)
     );
 
     audio_controller #(
@@ -67,13 +81,11 @@ module top(
         end
 
         if (button_pressed) begin
-            data_in <= {seconds, button_index}; // TODO: map pitch bits w/ rotary encoder #3
+            // Concatenate rotary encoder position and button index to form data_in
+            // data_in is {4 bits of pitch, 4 bits of beat index}
+            data_in <= {rotary_position, button_index}; // TODO: map pitch bits w/ rotary encoder #3
         end
-        // else begin
-        //     // Cast modulo result to 4 bits (enough for values 0-8)
-        //     pitch_data <= seconds % 9;
-        //     data_in <= {pitch_data, beat_count};
-        // end
+
     end
     // Hardware debugger: Map button_index bits directly to LEDs
     // This will help debug what values are actually being detected
