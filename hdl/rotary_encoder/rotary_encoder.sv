@@ -9,28 +9,8 @@ module rotary_encoder (
         output logic [2:0]  rotary_position // 3-bits for 8 notes. we assume that state 7 --> state 0
     );
 
-    // initialize variables
-    // logic last_signal_a;
-    // logic last_signal_b;
     logic [2:0] counter, next_counter = 3'b000;
 
-
-    // always_comb begin
-    //     if (last_signal_a != signal_a) begin
-    //         if (signal_a != signal_b) begin
-    //             if (counter == 3'b111) // wrap from state 7 --> state 0
-    //                 next_counter = 3'b000;
-    //             else
-    //                 next_counter = counter + 3'b001;
-    //         end else begin
-    //             if (counter == 3'b000) // wrap from state 0 --> state 7
-    //                 next_counter = 3'b111;
-    //             else
-    //                 next_counter = counter - 3'b001;
-    //         end
-    //         //signal_a = last_signal_a
-    //     end
-    // end
 
     always_ff @(posedge signal_a) begin 
         if (signal_b == 1'b0) begin
@@ -47,19 +27,8 @@ module rotary_encoder (
 
     end
 
-    // always_ff @(posedge signal_b) begin
-    //     if (signal_a == 1'b0) begin
-    //             if (counter == 3'b000) // wrap from state 0 --> state 7
-    //                 next_counter = 3'b111;
-    //             else
-    //                 next_counter = counter - 3'b001;
-    //     end
-    // end
-
-    always_ff @(posedge clk) begin
-        // last_signal_a <= signal_a;
+    always_ff @(posedge clk) 
         counter <= next_counter;
-    end
 
     assign rotary_position = counter;
     assign button_pressed = button;
