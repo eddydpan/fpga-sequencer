@@ -1,7 +1,9 @@
 `include "pwm.sv"
 
 module audio_controller #(
-    parameter NUM_BEATS = 16
+    parameter CLK_FREQ = 12_000_000,
+    parameter NUM_BEATS = 16,
+    parameter PERIOD = 4
 )(
     input logic clk,
     input logic[NUM_BEATS*4-1:0] beats, // TODO: dynamic buffer size based on NUM_BEATS
@@ -13,7 +15,7 @@ module audio_controller #(
         beat_count = 0;
     end
     
-    localparam [31:0] beat_clock_interval = 12_000_000 / NUM_BEATS;
+    localparam [31:0] beat_clock_interval = PERIOD * (CLK_FREQ / NUM_BEATS);
     logic [31:0] clk_counter = 0;  // Counter for clock cycles
     logic [3:0] pitch;
     logic [15:0] pwm_interval;
