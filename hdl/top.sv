@@ -24,7 +24,7 @@ module top(
     output logic RGB_G, 
     output logic RGB_B
 );
-    localparam PERIOD = 10'd4;
+    localparam PERIOD = 4;
     localparam NUM_BEATS = 16;
     localparam BEATS_BUFFER = $clog2(NUM_BEATS);
     localparam CLK_FREQ = 12_000_000; // 12 MHz
@@ -93,6 +93,11 @@ module top(
     logic tx_valid = 0;
     logic uart_sig;
     logic uart_ready;
+    logic [7:0] uart_data;  // Separate register for UART transmission
+    
+    // Sync signal: send 0xFF when beat wraps to 0 (end of period)
+    logic [BEATS_BUFFER-1:0] beat_count_prev = 0;
+    logic send_sync = 0;
 
     uart_tx #(
         .DATA_WIDTH(8),
@@ -100,7 +105,7 @@ module top(
         .CLK_FREQ(CLK_FREQ)
     ) uart_tx_inst (
         .sig(uart_sig),
-        .data(data_in),
+        .data(uart_data),  // Use uart_data instead of data_in
         .valid(tx_valid),
         .ready(uart_ready),
         .clk(clk),
@@ -111,17 +116,30 @@ module top(
 
     always_ff @(posedge clk) begin
         button_pressed_prev <= button_pressed;
+        beat_count_prev <= beat_count;
         
-        // Update data when button pressed
-        if (button_pressed) begin
-            data_in <= {rotary_position, button_index};
+        // Detect when beat wraps from 15 to 0 (end of period)
+        if (beat_count == 0 && beat_count_prev == NUM_BEATS - 1) begin
+            send_sync <= 1;
+        end else begin
+            send_sync <= 0;
         end
         
-        // Send only when button_pressed changes
-        // TODO: fix the debouncing logic--currently sends data over
-        // UART for as long as the button is pressed
-        if (button_pressed && !button_pressed_prev && uart_ready) begin
+        // Priority: sync message, then button data
+        if (send_sync && uart_ready) begin
+            uart_data <= 8'hFF;  // Sync marker: all 1s
             tx_valid <= 1;
+        end else if (button_pressed) begin
+            // Update sequencer model only on button press
+            data_in <= {rotary_position, button_index};
+            
+            // Send UART only on rising edge
+            if (!button_pressed_prev && uart_ready) begin
+                uart_data <= {rotary_position, button_index};
+                tx_valid <= 1;
+            end else begin
+                tx_valid <= 0;
+            end
         end else begin
             tx_valid <= 0;
         end
