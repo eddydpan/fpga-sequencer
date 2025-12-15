@@ -2,6 +2,8 @@
 `include "button_matrix_controller.sv"
 `include "audio_controller.sv"
 `include "rotary_encoder.sv"
+`include "cycle_timer.sv"
+`include "i2c_master.sv"
 
 module top(
     input logic clk,
@@ -17,6 +19,8 @@ module top(
     input logic _45a, // rotary encoder button
     input logic _44b, // rotary encoder output B
     input logic _43a, // rotary encoder output A
+    inout _4a, // I2C SCL
+    inout _6a, // I2C SDA
     output logic LED,
     output logic RGB_R, 
     output logic RGB_G, 
@@ -74,7 +78,55 @@ module top(
         .beat_count(beat_count),
         .pwm_out(_48b)
     );
+
+    // I2C Master for NeoTrellis communication
+    logic i2c_enable;
+    logic i2c_read_write; // 0=write, 1=read
+    logic [39:0] i2c_mosi_data; // 5 bytes: [offset_high, offset_low, R, G, B]
+    logic [15:0] i2c_register_address;
+    logic [6:0] i2c_device_address;
+    logic [15:0] i2c_divider;
+    logic [39:0] i2c_miso_data;
+    logic i2c_busy;
+
+    // For NeoTrellis: we need 5 data bytes [offset_high, offset_low, R, G, B]
+    // For pixel 1 (offset = 1*3 = 3) with blue color (R=0, G=0, B=255):
+    // Data = [0x00, 0x03, 0x00, 0x00, 0xFF]
+    // In 40-bit format (MSB first): 0x00_03_00_00_FF
+    i2c_master #(
+        .NUMBER_OF_DATA_BYTES(5),       // offset_high, offset_low, R, G, B
+        .NUMBER_OF_REGISTER_BYTES(2),   // Register address 0x0E04
+        .ADDRESS_WIDTH(7),              // 7-bit I2C address
+        .CHECK_FOR_CLOCK_STRETCHING(0), // Disable for simplicity
+        .CLOCK_STRETCHING_MAX_COUNT(0)
+    ) u_i2c_master (
+        .clock(clk),
+        .reset_n(1'b1),                 // Always enabled for now
+        .enable(i2c_enable),
+        .read_write(i2c_read_write),
+        .mosi_data(i2c_mosi_data),      // Connected to FSM-controlled signal
+        .register_address(i2c_register_address),
+        .device_address(i2c_device_address),
+        .divider(i2c_divider),
+        .miso_data(i2c_miso_data),
+        .busy(i2c_busy),
+        .external_serial_data(_6a),     // SDA
+        .external_serial_clock(_4a)     // SCL
+    );
     
+    // I2C Control FSM
+    typedef enum logic [2:0] {
+        I2C_IDLE,
+        I2C_WRITE_PIXEL,
+        I2C_WAIT_WRITE,
+        I2C_SHOW,
+        I2C_WAIT_SHOW,
+        I2C_DONE
+    } i2c_state_t;
+    
+    i2c_state_t i2c_state;
+    logic startup_done;
+
     always_ff @(posedge clk) begin
         // Increment seconds counter
         if (clk_count == CLK_FREQ - 1) begin
@@ -84,6 +136,57 @@ module top(
             clk_count <= clk_count + 1;
         end
 
+        // I2C FSM to write blue color to pixel 1 on startup
+        case (i2c_state)
+            I2C_IDLE: begin
+                i2c_enable <= 1'b0;
+                if (!startup_done) begin
+                    // Initialize I2C parameters
+                    i2c_device_address <= 7'h2E;           // NeoTrellis address
+                    i2c_read_write <= 1'b0;                // Write
+                    i2c_register_address <= 16'h0E04;      // SEESAW_NEOPIXEL_BUF
+                    // Pixel 1 (offset = 1*3 = 3), blue color (R=0, G=0, B=255)
+                    i2c_mosi_data <= 40'h00_03_00_00_FF;
+                    // I2C clock divider: 12MHz / (100kHz * 4) = 30
+                    // The i2c_master divides by (divider+1), and has 4 phases per bit
+                    // So for 100kHz I2C: 12MHz / (100kHz * 4) - 1 = 29
+                    i2c_divider <= 16'd29;
+                    i2c_state <= I2C_WRITE_PIXEL;
+                end
+            end
+            
+            I2C_WRITE_PIXEL: begin
+                i2c_enable <= 1'b1;                        // Start transaction
+                i2c_state <= I2C_WAIT_WRITE;
+            end
+            
+            I2C_WAIT_WRITE: begin
+                i2c_enable <= 1'b0;                        // Deassert enable
+                if (!i2c_busy) begin                       // Wait for completion
+                    i2c_register_address <= 16'h0E05;      // SEESAW_NEOPIXEL_SHOW
+                    i2c_mosi_data <= 40'h00_00_00_00_00;   // No data for show command
+                    i2c_state <= I2C_SHOW;
+                end
+            end
+            
+            I2C_SHOW: begin
+                i2c_enable <= 1'b1;                        // Start show command
+                i2c_state <= I2C_WAIT_SHOW;
+            end
+            
+            I2C_WAIT_SHOW: begin
+                i2c_enable <= 1'b0;
+                if (!i2c_busy) begin
+                    startup_done <= 1'b1;
+                    i2c_state <= I2C_DONE;
+                end
+            end
+            
+            I2C_DONE: begin
+                // Stay here, pixel is set
+            end
+        endcase
+
         if (button_pressed) begin
             // Concatenate rotary encoder position and button index to form data_in
             // data_in is {4 bits of pitch, 4 bits of beat index}
@@ -91,25 +194,37 @@ module top(
         end
 
     end
-    // Hardware debugger: Map button_index bits directly to LEDs
-    // This will help debug what values are actually being detected
+    // Hardware debugger: Show I2C FSM state and button presses
     always_comb begin
         if (button_pressed) begin
             // Map button_index bits to RGB and LED
-            // bit[0] -> RGB_R (inverted: 0=on)
-            // bit[1] -> RGB_G (inverted: 0=on)
-            // bit[2] -> RGB_B (inverted: 0=on)
-            // bit[3] -> LED (inverted: 0=on)
             RGB_R = ~button_index[0];
             RGB_G = ~button_index[1];
             RGB_B = ~button_index[2];
             LED = ~button_index[3];
         end else begin
-            // No button pressed: all LEDs off (high)
-            RGB_R = 1;
-            RGB_G = 1;
-            RGB_B = 1;
-            LED = 1;
+            // Show I2C state machine progress on LEDs
+            // RGB_R: ON when in WRITE_PIXEL or WAIT_WRITE
+            // RGB_G: ON when in SHOW or WAIT_SHOW
+            // RGB_B: ON when DONE (stays on after completion)
+            // LED: ON when I2C is busy
+            case (i2c_state)
+                I2C_IDLE: begin
+                    RGB_R = 1; RGB_G = 1; RGB_B = 1; LED = 1;
+                end
+                I2C_WRITE_PIXEL, I2C_WAIT_WRITE: begin
+                    RGB_R = 0; RGB_G = 1; RGB_B = 1; LED = ~i2c_busy;
+                end
+                I2C_SHOW, I2C_WAIT_SHOW: begin
+                    RGB_R = 1; RGB_G = 0; RGB_B = 1; LED = ~i2c_busy;
+                end
+                I2C_DONE: begin
+                    RGB_R = 1; RGB_G = 1; RGB_B = 0; LED = 1;
+                end
+                default: begin
+                    RGB_R = 1; RGB_G = 1; RGB_B = 1; LED = 1;
+                end
+            endcase
         end
     end
 
