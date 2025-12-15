@@ -5,7 +5,7 @@ SequencerModel::SequencerModel(int beats)
 
 void SequencerModel::setBeatPitch(int beat, int pitch) {
     if (beat < 0 || beat >= m_beats) return;
-    if (pitch < 0 || pitch > 7) return; // 3 bits = 0-7
+    if (pitch < 0 || pitch > 8) return; // 4 bits = 0-8 (0=rest, 1-8=C4-C5)
     m_pitches[beat] = pitch;
     if (onBeatPitchChanged) onBeatPitchChanged(beat, pitch);
 }
