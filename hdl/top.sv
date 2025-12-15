@@ -2,6 +2,7 @@
 `include "button_matrix_controller.sv"
 `include "audio_controller.sv"
 `include "rotary_encoder.sv"
+`include "uart_tx.sv"
 
 module top(
     input logic clk,
@@ -17,6 +18,7 @@ module top(
     input logic _45a, // rotary encoder button
     input logic _44b, // rotary encoder output B
     input logic _43a, // rotary encoder output A
+    output logic _13b, // UART TX pin
     output logic LED,
     output logic RGB_R, 
     output logic RGB_G, 
@@ -74,6 +76,56 @@ module top(
         .beat_count(beat_count),
         .pwm_out(_48b)
     );
+    // Power-on reset for UART
+    logic [7:0] reset_counter = 0;
+    logic uart_rstn = 0;
+    
+    always_ff @(posedge clk) begin
+        if (reset_counter < 8'd255) begin
+            reset_counter <= reset_counter + 1;
+            uart_rstn <= 0;
+        end else begin
+            uart_rstn <= 1;
+        end
+    end
+    // UART signals
+    logic button_pressed_prev = 0;
+    logic tx_valid = 0;
+    logic uart_sig;
+    logic uart_ready;
+
+    uart_tx #(
+        .DATA_WIDTH(8),
+        .BAUD_RATE(9600),
+        .CLK_FREQ(CLK_FREQ)
+    ) uart_tx_inst (
+        .sig(uart_sig),
+        .data(data_in),
+        .valid(tx_valid),
+        .ready(uart_ready),
+        .clk(clk),
+        .rstn(uart_rstn)
+    );
+    
+    assign _13b = uart_sig;
+
+    always_ff @(posedge clk) begin
+        button_pressed_prev <= button_pressed;
+        
+        // Update data when button pressed
+        if (button_pressed) begin
+            data_in <= {rotary_position, button_index};
+        end
+        
+        // Send only when button_pressed changes
+        // TODO: fix the debouncing logic--currently sends data over
+        // UART for as long as the button is pressed
+        if (button_pressed && !button_pressed_prev && uart_ready) begin
+            tx_valid <= 1;
+        end else begin
+            tx_valid <= 0;
+        end
+    end
     
     always_ff @(posedge clk) begin
         // Increment seconds counter
@@ -84,22 +136,12 @@ module top(
             clk_count <= clk_count + 1;
         end
 
-        if (button_pressed) begin
-            // Concatenate rotary encoder position and button index to form data_in
-            // data_in is {4 bits of pitch, 4 bits of beat index}
-            data_in <= {rotary_position, button_index}; // TODO: map pitch bits w/ rotary encoder #3
-        end
-
     end
     // Hardware debugger: Map button_index bits directly to LEDs
     // This will help debug what values are actually being detected
     always_comb begin
         if (button_pressed) begin
             // Map button_index bits to RGB and LED
-            // bit[0] -> RGB_R (inverted: 0=on)
-            // bit[1] -> RGB_G (inverted: 0=on)
-            // bit[2] -> RGB_B (inverted: 0=on)
-            // bit[3] -> LED (inverted: 0=on)
             RGB_R = ~button_index[0];
             RGB_G = ~button_index[1];
             RGB_B = ~button_index[2];
