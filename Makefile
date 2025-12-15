@@ -21,3 +21,8 @@ test:
 
 show:
 	gtkwave $(testbench).vcd $(visual_style_file)
+
+viz:
+	cd build && make
+	./build/src/fpga_sequencer_gui
+
