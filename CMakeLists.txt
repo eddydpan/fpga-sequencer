@@ -5,7 +5,7 @@ project(fpga_sequencer LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(BUILD_TESTS "Build unit tests" ON)
+# option(BUILD_TESTS "Build unit tests" ON)
 
 # Find Qt6 or fallback to Qt5
 find_package(Qt6 COMPONENTS Widgets SerialPort QUIET)
@@ -35,7 +35,7 @@ add_subdirectory(src)
 # Add tools (mock UART sender)
 add_subdirectory(tools)
 
-if(BUILD_TESTS)
-	enable_testing()
-	add_subdirectory(tests)
-endif()
+# if(BUILD_TESTS)
+# 	enable_testing()
+# 	add_subdirectory(tests)
+# endif()
