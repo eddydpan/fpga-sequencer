@@ -3,6 +3,7 @@
 `include "audio_controller.sv"
 `include "rotary_encoder.sv"
 `include "seven_segment.sv"
+`include "uart_tx.sv"
 
 module top(
     input logic clk,
@@ -27,12 +28,13 @@ module top(
     input logic _45a, // rotary encoder button
     input logic _44b, // rotary encoder output B
     input logic _43a, // rotary encoder output A
+    output logic _13b, // UART TX pin
     output logic LED,
     output logic RGB_R, 
     output logic RGB_G, 
     output logic RGB_B
 );
-    localparam PERIOD = 10'd4;
+    localparam PERIOD = 4;
     localparam NUM_BEATS = 16;
     localparam BEATS_BUFFER = $clog2(NUM_BEATS);
     localparam CLK_FREQ = 12_000_000; // 12 MHz
@@ -93,6 +95,74 @@ module top(
         .seg_data({_0a, _5a, _9b, _6a, _4a, _49a, _3b}), // GFEDCBA
         .decimal(_2a)
     );
+    // Power-on reset for UART
+    logic [7:0] reset_counter = 0;
+    logic uart_rstn = 0;
+    
+    always_ff @(posedge clk) begin
+        if (reset_counter < 8'd255) begin
+            reset_counter <= reset_counter + 1;
+            uart_rstn <= 0;
+        end else begin
+            uart_rstn <= 1;
+        end
+    end
+    // UART signals
+    logic button_pressed_prev = 0;
+    logic tx_valid = 0;
+    logic uart_sig;
+    logic uart_ready;
+    logic [7:0] uart_data;  // Separate register for UART transmission
+    
+    // Sync signal: send 0xFF when beat wraps to 0 (end of period)
+    logic [BEATS_BUFFER-1:0] beat_count_prev = 0;
+    logic send_sync = 0;
+
+    uart_tx #(
+        .DATA_WIDTH(8),
+        .BAUD_RATE(9600),
+        .CLK_FREQ(CLK_FREQ)
+    ) uart_tx_inst (
+        .sig(uart_sig),
+        .data(uart_data),  // Use uart_data instead of data_in
+        .valid(tx_valid),
+        .ready(uart_ready),
+        .clk(clk),
+        .rstn(uart_rstn)
+    );
+    
+    assign _13b = uart_sig;
+
+    always_ff @(posedge clk) begin
+        button_pressed_prev <= button_pressed;
+        beat_count_prev <= beat_count;
+        
+        // Detect when beat wraps from 15 to 0 (end of period)
+        if (beat_count == 0 && beat_count_prev == NUM_BEATS - 1) begin
+            send_sync <= 1;
+        end else begin
+            send_sync <= 0;
+        end
+        
+        // Priority: sync message, then button data
+        if (send_sync && uart_ready) begin
+            uart_data <= 8'hFF;  // Sync marker: all 1s
+            tx_valid <= 1;
+        end else if (button_pressed) begin
+            // Update sequencer model only on button press
+            data_in <= {rotary_position, button_index};
+            
+            // Send UART only on rising edge
+            if (!button_pressed_prev && uart_ready) begin
+                uart_data <= {rotary_position, button_index};
+                tx_valid <= 1;
+            end else begin
+                tx_valid <= 0;
+            end
+        end else begin
+            tx_valid <= 0;
+        end
+    end
     
     always_ff @(posedge clk) begin
         // Increment seconds counter
@@ -103,22 +173,12 @@ module top(
             clk_count <= clk_count + 1;
         end
 
-        if (button_pressed) begin
-            // Concatenate rotary encoder position and button index to form data_in
-            // data_in is {4 bits of pitch, 4 bits of beat index}
-            data_in <= {rotary_position, button_index}; // TODO: map pitch bits w/ rotary encoder #3
-        end
-
     end
     // Hardware debugger: Map button_index bits directly to LEDs
     // This will help debug what values are actually being detected
     always_comb begin
         if (button_pressed) begin
             // Map button_index bits to RGB and LED
-            // bit[0] -> RGB_R (inverted: 0=on)
-            // bit[1] -> RGB_G (inverted: 0=on)
-            // bit[2] -> RGB_B (inverted: 0=on)
-            // bit[3] -> LED (inverted: 0=on)
             RGB_R = ~button_index[0];
             RGB_G = ~button_index[1];
             RGB_B = ~button_index[2];

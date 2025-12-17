@@ -16,7 +16,7 @@ module audio_controller #(
         beat_count = 0;
     end
     
-    localparam [31:0] beat_clock_interval = PERIOD * (CLK_FREQ / NUM_BEATS);
+    localparam beat_clock_interval = PERIOD * (CLK_FREQ / NUM_BEATS);
     logic [31:0] clk_counter = 0;  // Counter for clock cycles
     logic [3:0] pitch;
     logic [15:0] pwm_interval;

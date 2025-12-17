@@ -7,7 +7,9 @@ module top_tb;
     logic LED, RGB_R, RGB_G, RGB_B;
     logic _39a, _38b, _41a, _42b;  // Column inputs
     logic _36b, _37a, _29b, _31b;  // Row outputs
-    logic _44b;
+    logic _48b;  // Audio output
+    logic _45a, _44b, _43a;  // Rotary encoder
+    logic _13b;  // UART TX output
 
     top u0 (
         .clk            (clk),
@@ -19,19 +21,26 @@ module top_tb;
         ._37a           (_37a),
         ._29b           (_29b),
         ._31b           (_31b),
-        ._44b           (_44b),  
+        ._48b           (_48b),
+        ._45a           (_45a),
+        ._44b           (_44b),
+        ._43a           (_43a),
+        ._13b           (_13b),
         .LED            (LED), 
         .RGB_R          (RGB_R), 
         .RGB_G          (RGB_G), 
         .RGB_B          (RGB_B)
     );
 
-    // Default: all column inputs high (no buttons pressed)
+    // Default: all inputs high (no buttons pressed)
     initial begin
         _39a = 1;
         _38b = 1;
         _41a = 1;
         _42b = 1;
+        _45a = 1;  // Rotary encoder button not pressed
+        _43a = 0;
+        _44b = 0;
     end
 
     initial begin
