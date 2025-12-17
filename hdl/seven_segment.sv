@@ -15,13 +15,13 @@ localparam [3:0] NOTE_A4 = 4'b0110;
 localparam [3:0] NOTE_B4 = 4'b0111;
 localparam [3:0] NOTE_C5 = 4'b1000;
 
-localparam [7:0] C = 7'b1011001;
-localparam [7:0] D = 7'b0111111;
+localparam [7:0] C = 7'b0111001;
+localparam [7:0] D = 7'b1011110;
 localparam [7:0] E = 7'b1111001;
 localparam [7:0] F = 7'b1110001;
-localparam [7:0] G = 7'b1111101;
+localparam [7:0] G = 7'b1101111;
 localparam [7:0] A = 7'b1110111;
-localparam [7:0] B = 7'b1111111;
+localparam [7:0] B = 7'b1111100;
 localparam [7:0] REST = 7'b0000000; // off 
     
 always_comb begin
@@ -39,6 +39,7 @@ always_comb begin
             decimal = 1'b1;
         end
         REST: seg_data = REST;
+        default: seg_data = REST;
     endcase
 end
 endmodule

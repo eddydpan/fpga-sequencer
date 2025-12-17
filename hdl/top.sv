@@ -44,8 +44,6 @@ module top(
     logic [BEATS_BUFFER-1:0] beat_count; // 4 bits for 16 beats
     logic [$clog2(CLK_FREQ)-1:0] clk_count = 0;
     logic [3:0] seconds;
-    logic [3:0] note;
-
     logic [3:0] rotary_position;
     logic re_button_pressed;
 
@@ -86,12 +84,11 @@ module top(
         .beats(beats),
         .beat_count(beat_count),
         .pwm_out(_48b),
-        .pitch (note)
     );
 
     seven_segment u_seven_segment (
         .clk(clk),
-        .note (note),
+        .note (rotary_position),
         .seg_data({_0a, _5a, _9b, _6a, _4a, _49a, _3b}), // GFEDCBA
         .decimal(_2a)
     );
