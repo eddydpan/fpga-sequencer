@@ -2,6 +2,7 @@
 `include "button_matrix_controller.sv"
 `include "audio_controller.sv"
 `include "rotary_encoder.sv"
+`include "seven_segment.sv"
 
 module top(
     input logic clk,
@@ -14,6 +15,15 @@ module top(
     output logic _29b, 
     output logic _31b, // row pin outputs for matrix scanning
     output logic _48b, // audio output pin
+    //{_0a, _5a, _9b, _6a, _4a, _49a, _3b}
+    output logic _9b, // seven segment display segments
+    output logic _6a,
+    output logic _4a,
+    output logic _2a,
+    output logic _0a,
+    output logic _5a,
+    output logic _3b,
+    output logic _49a,
     input logic _45a, // rotary encoder button
     input logic _44b, // rotary encoder output B
     input logic _43a, // rotary encoder output A
@@ -32,6 +42,7 @@ module top(
     logic [BEATS_BUFFER-1:0] beat_count; // 4 bits for 16 beats
     logic [$clog2(CLK_FREQ)-1:0] clk_count = 0;
     logic [3:0] seconds;
+    logic [3:0] note;
 
     logic [3:0] rotary_position;
     logic re_button_pressed;
@@ -72,7 +83,15 @@ module top(
         .clk(clk),
         .beats(beats),
         .beat_count(beat_count),
-        .pwm_out(_48b)
+        .pwm_out(_48b),
+        .pitch (note)
+    );
+
+    seven_segment u_seven_segment (
+        .clk(clk),
+        .note (note),
+        .seg_data({_0a, _5a, _9b, _6a, _4a, _49a, _3b}), // GFEDCBA
+        .decimal(_2a)
     );
     
     always_ff @(posedge clk) begin
