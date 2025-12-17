@@ -8,7 +8,8 @@ module audio_controller #(
     input logic clk,
     input logic[NUM_BEATS*4-1:0] beats, // TODO: dynamic buffer size based on NUM_BEATS
     output logic [$clog2(NUM_BEATS)-1:0] beat_count,
-    output logic pwm_out 
+    output logic pwm_out,
+    output logic [3:0] pitch
 );
 
     initial begin
