@@ -15,6 +15,13 @@ December 17, 2025
 
 We built a functional _Digital Beat Sequencer_ in SystemVerilog on an ice40 FPGA. Our MVP consists of three integrated subsystems: the Core Sequencer Logic, the Audio Output, and the Visual Output. For the core logic, we use a 4x4 Keypad Matrix to program the memory addresses of a 16-step sequence, determining which beats trigger a sound. The audio output is monophonic; a rotary encoder sets the tone by mapping user input to one of eight selectable pitches within a single octave. This tone is generated as a basic digital square wave and output directly to a buzzer, bypassing the need for a DAC. Finally, for visual output, we use a seven-segment display to show the tone currently selected by the rotary encoder.
 
+## Bill of Materials
+
+- **4x4 Keypad Matrix:** [Amazon Link](https://www.amazon.com/Tegg-Matrix-Button-Arduino-Raspberry/dp/B07QKCQGXS)
+- **Rotary Encoder (6x):** [Amazon Link](https://a.co/d/9N2CXG3)
+- **Buzzer/Small Speaker:** [Amazon Link](https://a.co/d/gRcDAPn)
+- **iceBlinkPico FPGA**
+
 ## Digital Design Modules
 
 ### Data Model: `model.sv`
@@ -31,7 +38,7 @@ We found that the button matrix was quite noisy. This was a result of the weak i
 
 ### Common-Cathode Seven Segment Display: `seven_segment.sv`
 
-![Seven Segment Display Wiring Diagram](assets/seven-segment-display.png)
+![Seven Segment Display Wiring Diagram](assets/seven-segment-display.png)   
 Figure #1: Seven Segment Display wiring diagram. Source: [https://www.allelcoelec.com/blog/7-Segment-Display-Basics,Pinout,Types,Control,and-Uses.html](https://www.allelcoelec.com/blog/7-Segment-Display-Basics,Pinout,Types,Control,and-Uses.html)
 
 ### Rotary Encoder
@@ -42,7 +49,7 @@ Our display has 8 pin inputs, each corresponding to a different segment in the d
 
 We use a rotary encoder to control the pitch that is played on a beat. The rotary encoder module inputs signals from the rotary encoder and outputs whether the button was pressed (`button_pressed`) and a four-bit value representing the rotational position of the rotary encoder (`rotary_position`). `rotary_position` increases if the rotary encoder is turned counterclockwise and decreases if it is turned clockwise. The module can tell the direction the rotary encoder is turned by comparing the values of `signal_a` and `signal_b` from the rotary encoder.
 
-![Rotary Encoder Diagram](assets/rotary-encoder.png)  
+![Rotary Encoder Diagram](assets/rotary-encoder.png)   
 Figure #2: Output signals from rotary encoder hardware. Source: [https://howtomechatronics.com/tutorials/arduino/rotary-encoder-works-use-arduino/\#google\_vignette](https://howtomechatronics.com/tutorials/arduino/rotary-encoder-works-use-arduino/#google_vignette) 
 
 The values of `signal_a` and `signal_b` as the rotary encoder spins determine rotation direction. When the contacts touch the output pins, their value is high. The direction of rotation determines whether `signal_a` or `signal_b` goes high first. Thus, by comparing which value is high and whether the other value is also high at the same time, we can determine the direction of rotation.
@@ -77,23 +84,6 @@ In addition to the modules, we instantiate a few `always_ff` blocks to handle th
 
 This repo contains a passive Qt GUI visualizer for the FPGA sequencer with 3-bit pitch encoding per beat.
 
----
-
-### Build Instructions
-
-```bash
-mkdir -p build && cd build
-cmake .. -DBUILD_TESTS=ON
-cmake --build . --parallel 4
-```
-
-## Bill of Materials
-
-- **4x4 Keypad Matrix:** [Amazon Link](https://www.amazon.com/Tegg-Matrix-Button-Arduino-Raspberry/dp/B07QKCQGXS)
-- **Rotary Encoder (6x):** [Amazon Link](https://a.co/d/9N2CXG3)
-- **Buzzer/Small Speaker:** [Amazon Link](https://a.co/d/gRcDAPn)
-- **iceBlinkPico FPGA**
-
 ## Next Steps
 
 Since this project was both fun and offered great learning opportunities, we're looking to build on top of this project by:
@@ -122,3 +112,13 @@ Since this project was both fun and offered great learning opportunities, we're 
 - Turn it into a product by soldering it to perfboard and encasing it
 
 Over the course of the next calendar year, we plan on implementing these features.
+
+---
+
+### Build Instructions
+
+```bash
+mkdir -p build && cd build
+cmake .. -DBUILD_TESTS=ON
+cmake --build . --parallel 4
+```
