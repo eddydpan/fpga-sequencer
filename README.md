@@ -41,8 +41,6 @@ We found that the button matrix was quite noisy. This was a result of the weak i
 ![Seven Segment Display Wiring Diagram](assets/seven-segment-display.png)   
 Figure #1: Seven Segment Display wiring diagram. Source: [https://www.allelcoelec.com/blog/7-Segment-Display-Basics,Pinout,Types,Control,and-Uses.html](https://www.allelcoelec.com/blog/7-Segment-Display-Basics,Pinout,Types,Control,and-Uses.html)
 
-### Rotary Encoder
-
 Our display has 8 pin inputs, each corresponding to a different segment in the display, where the 8th segment is the decimal point. Each pin connects to our FPGA through a 330-ohm current-limiting external resistor for the LED. The common cathode pins connect to ground. In `top`, the rotary encoder module instance outputs the pitch data corresponding to its current position as `rotary_position`, and the `u_seven_segment` module instance takes the `rotary_position` value in to determine what letter to display. For example, the note `7'b1011001` corresponds to the letter C, where `1`s correspond to the LED being illuminated. The bit indices of each note's local parameter correspond to the segment ordering `GFEDCBA`. When the program is running, the display shows the note that the rotary encoder is prepped to install in a given beat.
 
 ### Rotary Encoder: `rotary_encoder.sv`
